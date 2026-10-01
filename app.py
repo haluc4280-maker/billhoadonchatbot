@@ -142,7 +142,7 @@ def create_pdf():
         try:
 pdfmetrics.registerFont(
                 TTFont("AppFont", regular_path)
-            
+            )
             font_regular = "AppFont"
         except:
             pass
