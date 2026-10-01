@@ -1,52 +1,49 @@
+import streamlit as st
+from datetime import datetime
+from io import BytesIO
+import os
+
+# ==============================
+# CẤU HÌNH TRANG
+# ==============================
+
 st.set_page_config(
-    page_title="Milk Tea POS",
+    page_title="Quản lý bán trà sữa",
     page_icon="🧋",
-    layout="centered"
+    layout="wide"
 )
 
-
-# =========================================================
-# MENU TRÀ SỮA
-# =========================================================
+# ==============================
+# DỮ LIỆU MENU
+# ==============================
 
 MENU = {
-    "Trà sữa truyền thống": 30000,
-    "Trà sữa matcha": 35000,
-    "Trà sữa socola": 35000,
-    "Trà sữa khoai môn": 35000,
-    "Trà sữa ô long": 35000,
-    "Trà sữa dâu": 35000,
-    "Trà sữa caramel": 38000,
-    "Trà sữa kem cheese": 40000,
-    "Trà đào cam sả": 35000,
-    "Trà vải": 32000,
-    "Trà chanh dây": 32000,
-    "Matcha latte": 40000
+    "Trà sữa truyền thống": 25000,
+    "Trà sữa trân châu": 30000,
+    "Trà sữa matcha": 30000,
+    "Trà sữa socola": 30000,
+    "Trà sữa khoai môn": 32000,
+    "Trà sữa dâu": 30000,
+    "Trà đào": 28000,
+    "Trà vải": 28000,
+    "Trà chanh": 20000,
+    "Trà tắc": 20000,
 }
 
-
-# =========================================================
-# MENU TOPPING
-# =========================================================
-
 TOPPINGS = {
-    "Không topping": 0,
     "Trân châu đen": 5000,
-    "Trân châu trắng": 6000,
+    "Trân châu trắng": 5000,
     "Thạch dừa": 5000,
     "Thạch trái cây": 5000,
     "Pudding trứng": 7000,
-    "Kem cheese": 10000,
-    "Hạt thủy tinh": 6000
+    "Kem cheese": 8000,
+    "Trân châu hoàng kim": 7000,
+    "Hạt thủy tinh": 6000,
 }
-
-
-# =========================================================
-# MỨC ĐƯỜNG - ĐÁ
-# =========================================================
 
 SUGAR_LEVELS = [
     "100%",
+    "80%",
     "70%",
     "50%",
     "30%",
@@ -54,273 +51,146 @@ SUGAR_LEVELS = [
 ]
 
 ICE_LEVELS = [
-    "70%",
-    "50%",
-    "30%",
-    "0%"
+    "100%",
+    "90%",
+    "80%",
+    "70%"
 ]
 
-
-# =========================================================
-# KHỞI TẠO GIỎ HÀNG
-# =========================================================
+# ==============================
+# KHỞI TẠO SESSION
+# ==============================
 
 if "cart" not in st.session_state:
     st.session_state.cart = []
 
+if "bill_number" not in st.session_state:
+    st.session_state.bill_number = 1
 
-# =========================================================
-# TIÊU ĐỀ
-# =========================================================
+# ==============================
+# HÀM TIỆN ÍCH
+# ==============================
 
-st.title("🧋 MILK TEA POS lien milk-tea")
-st.caption("Hệ thống tính tiền & xuất hóa đơn trà sữa")
-
-
-# =========================================================
-# THÔNG TIN KHÁCH HÀNG
-# =========================================================
-
-st.subheader("👤 Thông tin khách hàng")
-
-customer_name = st.text_input(
-    "Họ và tên khách hàng",
-    placeholder="Nhập tên khách hàng..."
-)
+def format_money(number):
+    return f"{number:,.0f} VNĐ".replace(",", ".")
 
 
-# =========================================================
-# CHỌN MÓN
-# =========================================================
+def calculate_item_total(item):
+    topping_total = sum(
+        TOPPINGS[topping]
+        for topping in item["toppings"]
+    )
 
-st.subheader("🧋 Chọn món")
-
-drink = st.selectbox(
-    "Loại trà sữa / thức uống",
-    list(MENU.keys())
-)
-
-quantity = st.number_input(
-    "Số lượng",
-    min_value=1,
-    max_value=50,
-    value=1,
-    step=1
-)
-
-topping = st.selectbox(
-    "Topping",
-    list(TOPPINGS.keys())
-)
-
-sugar = st.selectbox(
-    "Mức độ đường",
-    SUGAR_LEVELS
-)
-
-ice = st.selectbox(
-    "Mức độ đá",
-    ICE_LEVELS
-)
+    return (
+        item["price"] + topping_total
+    ) * item["quantity"]
 
 
-# =========================================================
-# GIÁ
-# =========================================================
-
-drink_price = MENU[drink]
-topping_price = TOPPINGS[topping]
-
-unit_price = drink_price + topping_price
-total_price = unit_price * quantity
-
-
-st.info(
-    f"💰 Đơn giá: **{unit_price:,} VNĐ**  |  "
-    f"Thành tiền: **{total_price:,} VNĐ**"
-)
-
-
-# =========================================================
-# THÊM VÀO HÓA ĐƠN
-# =========================================================
-
-if st.button("➕ Thêm vào hóa đơn", use_container_width=True):
-
-    item = {
-        "drink": drink,
-        "quantity": quantity,
-        "topping": topping,
-        "sugar": sugar,
-        "ice": ice,
-        "unit_price": unit_price,
-        "total": total_price
-    }
-
-    st.session_state.cart.append(item)
-
-    st.success(f"Đã thêm {quantity} ly {drink} vào hóa đơn!")
-
-
-# =========================================================
-# HIỂN THỊ HÓA ĐƠN TẠM
-# =========================================================
-
-st.divider()
-
-st.subheader("🧾 Hóa đơn hiện tại")
-
-
-if len(st.session_state.cart) == 0:
-
-    st.warning("Chưa có món nào trong hóa đơn.")
-
-else:
-
-    grand_total = 0
-
-    for i, item in enumerate(st.session_state.cart):
-
-        grand_total += item["total"]
-
-        with st.container(border=True):
-
-            col1, col2 = st.columns([4, 1])
-
-            with col1:
-
-                st.markdown(
-                    f"### {item['drink']}"
-                )
-
-                st.write(
-                    f"🥤 Số lượng: **{item['quantity']} ly**"
-                )
-
-                st.write(
-                    f"🍮 Topping: **{item['topping']}**"
-                )
-
-                st.write(
-                    f"🍬 Đường: **{item['sugar']}**"
-                )
-
-                st.write(
-                    f"🧊 Đá: **{item['ice']}**"
-                )
-
-                st.write(
-                    f"Đơn giá: {item['unit_price']:,} VNĐ"
-                )
-
-            with col2:
-
-                st.markdown(
-                    f"**{item['total']:,} VNĐ**"
-                )
-
-                if st.button(
-                    "🗑️ Xóa",
-                    key=f"delete_{i}"
-                ):
-
-                    st.session_state.cart.pop(i)
-
-                    st.rerun()
-
-
-    st.divider()
-
-    st.markdown(
-        f"## 💰 TỔNG THANH TOÁN: {grand_total:,} VNĐ"
+def calculate_total():
+    return sum(
+        calculate_item_total(item)
+        for item in st.session_state.cart
     )
 
 
-# =========================================================
-# XÓA TOÀN BỘ ĐƠN
-# =========================================================
-
-if len(st.session_state.cart) > 0:
-
-    if st.button(
-        "🗑️ Xóa toàn bộ hóa đơn",
-        use_container_width=True
-    ):
-
-        st.session_state.cart = []
-
-        st.rerun()
+def create_bill_number():
+    return f"HD{st.session_state.bill_number:04d}"
 
 
-# =========================================================
-# TẠO FILE HÓA ĐƠN PDF
-# =========================================================
+# ==============================
+# TẠO HÓA ĐƠN PDF
+# ==============================
 
-def create_invoice_pdf(customer_name, cart):
+def create_pdf():
+    try:
+        from reportlab.lib.pagesizes import thermal
+    except Exception:
+        pass
 
-    filename = "hoa_don_tra_sua.pdf"
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A5
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
 
-    c = canvas.Canvas(
-        filename,
-        pagesize=A5
-    )
+    buffer = BytesIO()
+
+    # --------------------------------
+    # Tìm font Unicode
+    # --------------------------------
+
+    font_regular = "Helvetica"
+    font_bold = "Helvetica-Bold"
+
+    font_paths = [
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/Arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    ]
+
+    regular_path = None
+    bold_path = None
+
+    for path in font_paths:
+        if os.path.exists(path):
+            if "Bold" in path:
+                bold_path = path
+            elif regular_path is None:
+                regular_path = path
+
+    if regular_path:
+        try:
+pdfmetrics.registerFont(
+                TTFont("AppFont", regular_path)
+            )
+            font_regular = "AppFont"
+        except:
+            pass
+
+    if bold_path:
+        try:
+            pdfmetrics.registerFont(
+                TTFont("AppFontBold", bold_path)
+            )
+            font_bold = "AppFontBold"
+        except:
+            pass
+
+    # --------------------------------
+    # Khổ giấy A5
+    # --------------------------------
+
+    c = canvas.Canvas(buffer, pagesize=A5)
 
     width, height = A5
 
-    # -----------------------------------------------------
-    # FONT
-    # -----------------------------------------------------
+    y = height - 35
 
-    font_path = "DejaVuSans.ttf"
-
-    if os.path.exists(font_path):
-
-        pdfmetrics.registerFont(
-            TTFont("DejaVu", font_path)
-        )
-
-        font = "DejaVu"
-
-    else:
-
-        font = "Helvetica"
-
-    # -----------------------------------------------------
+    # --------------------------------
     # TIÊU ĐỀ
-    # -----------------------------------------------------
+    # --------------------------------
 
-    y = height - 40
-
-    c.setFont(font, 18)
-
+    c.setFont(font_bold, 16)
     c.drawCentredString(
         width / 2,
         y,
-        "HOA DON BAN HANG"
+        "HÓA ĐƠN BÁN HÀNG"
     )
 
     y -= 25
 
-    c.setFont(font, 10)
+    c.setFont(font_regular, 9)
 
-    c.drawCentredString(
-        width / 2,
-        y,
-        "MILK TEA SHOP"
+    bill_number = create_bill_number()
+
+    now = datetime.now().strftime(
+        "%d/%m/%Y %H:%M"
     )
-
-    # -----------------------------------------------------
-    # THÔNG TIN
-    # -----------------------------------------------------
-
-    y -= 30
-
-    c.setFont(font, 9)
 
     c.drawString(
         30,
         y,
-        f"Khach hang: {customer_name if customer_name else 'Khach le'}"
+        f"Số bill: {bill_number}"
     )
 
     y -= 15
@@ -328,73 +198,14 @@ def create_invoice_pdf(customer_name, cart):
     c.drawString(
         30,
         y,
-        datetime.now().strftime(
-            "Thoi gian: %d/%m/%Y %H:%M"
-        )
-    )
-
-    y -= 25
-
-    c.line(
-        30,
-        y,
-        width - 30,
-        y
+        f"Thời gian: {now}"
     )
 
     y -= 20
 
-    grand_total = 0
-
-    # -----------------------------------------------------
-    # DANH SÁCH MÓN
-    # -----------------------------------------------------
-
-    for index, item in enumerate(cart, start=1):
-
-        grand_total += item["total"]
-
-        c.setFont(font, 10)
-
-        c.drawString(
-            30,
-            y,
-            f"{index}. {item['drink']}"
-        )
-
-        y -= 14
-
-        c.setFont(font, 8)
-
-        c.drawString(
-            40,
-            y,
-            f"So luong: {item['quantity']} | "
-            f"Topping: {item['topping']}"
-        )
-
-        y -= 13
-
-        c.drawString(
-            40,
-            y,
-            f"Duong: {item['sugar']} | "
-            f"Da: {item['ice']}"
-        )
-
-        y -= 13
-
-        c.drawRightString(
-            width - 30,
-            y,
-            f"{item['total']:,} VND"
-        )
-
-        y -= 20
-
-    # -----------------------------------------------------
-    # TỔNG TIỀN
-    # -----------------------------------------------------
+    # --------------------------------
+    # ĐƯỜNG KẺ
+    # --------------------------------
 
     c.line(
         30,
@@ -403,93 +214,364 @@ def create_invoice_pdf(customer_name, cart):
         y
     )
 
-    y -= 25
+    y -= 18
 
-    c.setFont(font, 13)
+    # --------------------------------
+    # DANH SÁCH MÓN
+    # --------------------------------
+
+    for index, item in enumerate(
+        st.session_state.cart,
+        start=1
+    ):
+
+        item_total = calculate_item_total(item)
+
+        c.setFont(font_bold, 9)
+
+        c.drawString(
+            30,
+            y,
+            f"{index}. {item['name']}"
+        )
+
+        y -= 14
+
+        c.setFont(font_regular, 8)
+
+        c.drawString(
+            42,
+            y,
+            f"SL: {item['quantity']} x {format_money(item['price'])}"
+        )
+
+        y -= 13
+
+        c.drawString(
+            42,
+            y,
+            f"Đường: {item['sugar']} | Đá: {item['ice']}"
+        )
+
+        y -= 13
+
+        if item["toppings"]:
+            topping_text = ", ".join(
+                item["toppings"]
+            )
+
+            c.drawString(
+                42,
+                y,
+                f"Topping: {topping_text}"
+            )
+
+            y -= 13
+
+        c.drawRightString(
+            width - 30,
+            y,
+            format_money(item_total)
+        )
+
+        y -= 18
+
+    # --------------------------------
+    # TỔNG TIỀN
+    # --------------------------------
+
+    c.line(
+        30,
+        y,
+        width - 30,
+        y
+    )
+
+    y -= 22
+
+    total = calculate_total()
+
+    c.setFont(font_bold, 12)
 
     c.drawString(
         30,
         y,
-        "TONG THANH TOAN:"
+        "TỔNG THANH TOÁN"
     )
 
     c.drawRightString(
         width - 30,
         y,
-        f"{grand_total:,} VND"
+        format_money(total)
     )
 
-    # -----------------------------------------------------
-    # CẢM ƠN
-    # -----------------------------------------------------
+    y -= 30
 
-    y -= 35
-
-    c.setFont(font, 9)
+    c.setFont(font_regular, 9)
 
     c.drawCentredString(
         width / 2,
         y,
-        "Cam on quy khach!"
-    )
-
-    y -= 15
-
-    c.drawCentredString(
-        width / 2,
-        y,
-        "Hen gap lai ban lan sau!"
-    )
+        "Cảm ơn quý khách!"
+)
 
     c.save()
 
-    return filename
+    buffer.seek(0)
+
+    return buffer
 
 
-# =========================================================
-# XUẤT HÓA ĐƠN
-# =========================================================
+# ==============================
+# HEADER
+# ==============================
 
-if len(st.session_state.cart) > 0:
+st.title("🧋 QUẢN LÝ BÁN TRÀ SỮA")
 
-    st.divider()
-
-    st.subheader("📄 Xuất hóa đơn")
-
-    if st.button(
-        "🧾 TẠO HÓA ĐƠN PDF",
-        use_container_width=True
-    ):
-
-        pdf_file = create_invoice_pdf(
-            customer_name,
-            st.session_state.cart
-        )
-
-        with open(
-            pdf_file,
-            "rb"
-        ) as file:
-
-            st.download_button(
-                label="⬇️ Tải hóa đơn về máy",
-                data=file,
-                file_name="hoa_don_tra_sua.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
-
-        st.success(
-            "Đã tạo hóa đơn PDF thành công!"
-        )
-
-
-# =========================================================
-# FOOTER
-# =========================================================
+st.caption(
+    "Tạo đơn hàng • Tính tiền • Xuất hóa đơn"
+)
 
 st.divider()
 
-st.caption(
-    "🧋 Milk Tea POS • Hệ thống bán hàng trà sữa"
+# ==============================
+# KHU VỰC NHẬP ĐƠN
+# ==============================
+
+col1, col2 = st.columns([1, 1])
+
+with col1:
+
+    st.subheader("🧋 Chọn món")
+
+    drink = st.selectbox(
+        "Loại trà sữa / thức uống",
+        list(MENU.keys())
+    )
+
+    price = MENU[drink]
+
+    st.info(
+        f"Giá: **{format_money(price)}**"
+    )
+
+    quantity = st.number_input(
+        "Số lượng",
+        min_value=1,
+        max_value=50,
+        value=1,
+        step=1
+    )
+
+with col2:
+
+    st.subheader("⚙️ Tùy chọn")
+
+    sugar = st.select_slider(
+        "Mức độ đường",
+        options=SUGAR_LEVELS,
+        value="70%"
+    )
+
+    ice = st.select_slider(
+        "Mức độ đá",
+        options=ICE_LEVELS,
+        value="100%"
+    )
+
+    toppings = st.multiselect(
+        "Thêm topping",
+        list(TOPPINGS.keys())
+    )
+
+# ==============================
+# HIỂN THỊ GIÁ TOPPING
+# ==============================
+
+if toppings:
+
+    topping_price = sum(
+        TOPPINGS[topping]
+        for topping in toppings
+    )
+
+    st.info(
+        "Topping: "
+        + ", ".join(toppings)
+        + f" — +{format_money(topping_price)}"
+    )
+
+# ==============================
+# THÊM VÀO BILL
+# ==============================
+
+if st.button(
+    "➕ THÊM VÀO HÓA ĐƠN",
+    use_container_width=True
+):
+
+    item = {
+        "name": drink,
+        "price": price,
+        "quantity": quantity,
+        "toppings": toppings,
+        "sugar": sugar,
+        "ice": ice
+    }
+
+    st.session_state.cart.append(item)
+
+    st.success(
+        f"Đã thêm {quantity} ly {drink} vào hóa đơn!"
+    )
+
+# ==============================
+# HÓA ĐƠN HIỆN TẠI
+# ==============================
+
+st.divider()
+
+st.subheader(
+    f"🧾 HÓA ĐƠN {create_bill_number()}"
 )
+
+if len(st.session_state.cart) == 0:
+
+    st.info(
+        "Chưa có món nào trong hóa đơn."
+    )
+
+else:
+
+    # --------------------------------
+    # HIỂN THỊ TỪNG MÓN
+    # --------------------------------
+
+    for index, item in enumerate(
+        st.session_state.cart
+    ):
+
+        item_total = calculate_item_total(item)
+
+        with st.container(border=True):
+
+            c1, c2, c3 = st.columns(
+                [4, 2, 1]
+            )
+
+            with c1:
+
+                st.markdown(
+                    f"### {index + 1}. {item['name']}"
+                )
+
+                st.write(
+                    f"Đường: **{item['sugar']}**  |  "
+                    f"Đá: **{item['ice']}**"
+                )
+
+                if item["toppings"]:
+
+                    st.write(
+                        "Topping: "
+                        + ", ".join(
+item["toppings"]
+                        )
+                    )
+
+            with c2:
+
+                st.write(
+                    f"Đơn giá: "
+                    f"**{format_money(item['price'])}**"
+                )
+
+                st.write(
+                    f"Số lượng: **{item['quantity']}**"
+                )
+
+            with c3:
+
+                st.write(
+                    "**Thành tiền**"
+                )
+
+                st.markdown(
+                    f"### {format_money(item_total)}"
+                )
+
+            # --------------------------
+            # XÓA MÓN
+            # --------------------------
+
+            if st.button(
+                "🗑️ Xóa",
+                key=f"delete_{index}"
+            ):
+
+                st.session_state.cart.pop(
+                    index
+                )
+
+                st.rerun()
+
+    # ==============================
+    # TỔNG TIỀN
+    # ==============================
+
+    total = calculate_total()
+
+    st.divider()
+
+    col_a, col_b = st.columns(
+        [2, 1]
+    )
+
+    with col_a:
+
+        st.write(
+            f"**Số lượng món:** "
+            f"{len(st.session_state.cart)}"
+        )
+
+    with col_b:
+
+        st.markdown(
+            f"## Tổng: {format_money(total)}"
+        )
+
+    # ==============================
+    # NÚT XUẤT HÓA ĐƠN
+    # ==============================
+
+    st.divider()
+
+    pdf_file = create_pdf()
+
+    st.download_button(
+        label="🖨️ XUẤT HÓA ĐƠN PDF",
+        data=pdf_file,
+        file_name=f"{create_bill_number()}.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
+
+    # ==============================
+    # THANH TOÁN / BILL MỚI
+    # ==============================
+
+    if st.button(
+        "💰 THANH TOÁN & TẠO BILL MỚI",
+        use_container_width=True
+    ):
+
+        st.session_state.cart = []
+
+        st.session_state.bill_number += 1
+
+        st.success(
+            "Thanh toán thành công! "
+            "Đã tạo bill mới."
+        )
+
+        st.rerun()
