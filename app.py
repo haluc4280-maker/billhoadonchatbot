@@ -613,4 +613,10 @@ if user_question:
 
     # Refresh để hiển thị tin nhắn
     st.rerun()
+# ==============================
+# 🤖 CHAT BOT AI THÔNG MINH
+# ==============================
+
+st.divider()
+st.subheader("🤖 CHAT BOT AI THÔNG MINH")
 
