@@ -480,3 +480,136 @@ else:
         )
 
         st.rerun()
+# ==============================
+# 🤖 CHATBOT HỎI ĐÁP
+# ==============================
+
+st.divider()
+st.subheader("🤖 CHATBOT HỖ TRỢ")
+
+# Lưu lịch sử chat
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Hiển thị lịch sử chat
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
+
+
+# Hàm xử lý câu hỏi
+def chatbot_answer(question):
+    q = question.lower().strip()
+
+    # Chào hỏi
+    if any(word in q for word in ["xin chào", "hello", "hi", "chào"]):
+        return (
+            "👋 Xin chào! Mình là chatbot của quán trà sữa 🧋\n\n"
+            "Bạn có thể hỏi mình về menu, giá món, topping hoặc cách đặt hàng nhé!"
+        )
+
+    # Hỏi menu
+    if any(word in q for word in ["menu", "thực đơn", "món", "đồ uống"]):
+        menu_text = "\n".join(
+            [f"🧋 {name}: {format_money(price)}" for name, price in MENU.items()]
+        )
+
+        return "📋 **Menu của quán:**\n\n" + menu_text
+
+    # Hỏi topping
+    if any(word in q for word in ["topping", "thêm topping"]):
+        topping_text = "\n".join(
+            [f"🍮 {name}: {format_money(price)}" for name, price in TOPPINGS.items()]
+        )
+
+        return "🍮 **Các loại topping:**\n\n" + topping_text
+
+    # Hỏi giá từng món
+    for name, price in MENU.items():
+        if name.lower() in q:
+            return f"🧋 **{name}** có giá **{format_money(price)}**."
+
+    # Hỏi giá topping
+    for name, price in TOPPINGS.items():
+        if name.lower() in q:
+            return f"🍮 **{name}** có giá **{format_money(price)}**."
+
+    # Hỏi đường
+    if "đường" in q:
+        return (
+            "🍬 Quán có các mức đường:\n\n"
+            + " • ".join(SUGAR_LEVELS)
+        )
+
+    # Hỏi đá
+    if "đá" in q:
+        return (
+            "🧊 Quán có các mức đá:\n\n"
+            + " • ".join(ICE_LEVELS)
+        )
+
+    # Hỏi cách đặt hàng
+    if any(word in q for word in ["đặt hàng", "đặt món", "mua", "order"]):
+        return (
+            "🛒 Bạn có thể đặt món ngay trên app:\n\n"
+            "1. Chọn loại trà sữa/thức uống\n"
+            "2. Chọn số lượng\n"
+            "3. Chọn mức đường và đá\n"
+            "4. Chọn topping nếu muốn\n"
+            "5. Nhấn **THÊM VÀO HÓA ĐƠN**"
+        )
+
+    # Hỏi tổng tiền
+    if any(word in q for word in ["tổng tiền", "hóa đơn", "bill", "thanh toán"]):
+        total = calculate_total()
+
+        if total == 0:
+            return "🧾 Hiện tại hóa đơn của bạn chưa có món nào."
+
+        return (
+            f"🧾 Hóa đơn hiện tại của bạn có "
+            f"**{len(st.session_state.cart)} dòng món**.\n\n"
+            f"💰 Tổng tiền: **{format_money(total)}**"
+        )
+
+    # Câu hỏi cảm ơn
+    if any(word in q for word in ["cảm ơn", "thanks", "thank you"]):
+        return "🥰 Không có gì nha! Chúc bạn có một ly trà sữa thật ngon 🧋💗"
+
+    # Không hiểu câu hỏi
+    return (
+        "🤔 Mình chưa hiểu câu hỏi này.\n\n"
+        "Bạn có thể hỏi mình về:\n"
+        "• 🧋 Menu và giá món\n"
+        "• 🍮 Topping\n"
+        "• 🍬 Mức độ đường\n"
+        "• 🧊 Mức độ đá\n"
+        "• 🛒 Cách đặt hàng\n"
+        "• 🧾 Hóa đơn và tổng tiền"
+    )
+
+
+# Ô nhập câu hỏi
+user_question = st.chat_input(
+    "💬 Bạn muốn hỏi gì?"
+)
+
+if user_question:
+
+    # Hiển thị câu hỏi của khách
+    st.session_state.messages.append({
+        "role": "user",
+        "content": user_question
+    })
+
+    # Tạo câu trả lời
+    answer = chatbot_answer(user_question)
+
+    # Lưu câu trả lời
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": answer
+    })
+
+    # Refresh để hiển thị tin nhắn
+    st.rerun()
